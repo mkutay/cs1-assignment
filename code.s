@@ -15,262 +15,164 @@ main:
   ldi r16, 0xf0
   out DDRD, r16 ; set last 4 pins of PORTD as output
 
-  ; rcall k_number
+  ldi	ZL, lo8(k_number_data)
+	ldi	ZH, hi8(k_number_data)
+  rcall display_memory_index_z ; display the digits of the k-number, that is 23162628
 
-  ; rcall initials
+  ldi r16, 0x00
+  out PORTB, r16
+  out PORTD, r16
+  ldi r18, 100
+  rcall delay
 
-  ldi r19, 50
-  ; rcall morse_loop
+  ldi	ZL, lo8(initials_data)
+	ldi	ZH, hi8(initials_data)
+  rcall display_memory_index_z ; display initials, that is M.K.B
 
+  ldi r23, 1 ; the loop counter register
+  rcall morse_loop ; call the loop for displaying the morse code
+
+  ldi r16, 0x80 ; set the highest bit 1, and the rest 0
   rjmp ping_pong
 
   rjmp main
 
-ping_pong_going_right:
-  out PORTB, r16
-  out PORTD, r16
+morse_loop: ; do it 50 times, until r23 is 51
+  cpi r23, 51
+  breq return_morse_loop
 
-  ldi r18, 50
-  rcall delay
+  ldi r17, 0x01
+  ldi r19, 0x01 ; the constant 0x01
 
-  lsr r16
-  cpi r16, 0x01
-  brne ping_pong_going_right
-  ret
+  mov r22, r23
+  andi r22, 0x01 ; isolate the first bit of r22
 
-ping_pong_going_left:
-  out PORTB, r16
-  out PORTD, r16
+  cpi r22, 0x01
+  brne dont_do_normal ; branches if r22 is 0x00
 
-  ldi r18, 50
-  rcall delay
+  ldi ZL, lo8(morse_normal_order)
+  ldi ZH, hi8(morse_normal_order)
 
-  lsl r16
-  cpi r16, 0x80
-  brne ping_pong_going_left
-  ret
+  dont_do_normal:
+  cpi r22, 0x00
+  brne dont_do_reverse  ; branches if r22 is 0x01
 
-ping_pong:
-  ldi r16, 0x80
-  rcall ping_pong_going_right
-  ldi r16, 0x01
-  rcall ping_pong_going_left
-  rjmp ping_pong
+  ldi ZL, lo8(morse_reverse_order)
+  ldi ZH, hi8(morse_reverse_order)
 
-morse_loop: ; do it r19 times (that is 50)
-  ; if a number is odd, then the bit in the first position would be 1
-  ; if it is even, then the same bit would be 0
-  mov r16, r19
+  dont_do_reverse:
+  rcall morse
 
-  andi r16, 0x01 ; isolate the first bit
-
-  cpi r16, 0x00
-  brne continue1 
-  rcall morse ; calls morse if r16's first bit is 0
-
-  continue1:
-
-  cpi r16, 0x01
-  brne continue2
-  rcall esrom ; brances if r16's first bit is 1
-
-  continue2:
-
-  mov r16, r19
-  rjmp dec_5 ; continuously decrement 5 from r16
+  rcall dec_5
 
   good:
-  ; going to display five
-
-  rcall inter_letter
-  rcall inter_letter
-  rcall inter_letter
-  rcall inter_letter
-
-  rcall morse_dot
-  rcall inter_part
-  rcall morse_dot
-  rcall inter_part
-  rcall morse_dot
-  rcall inter_part
-  rcall morse_dot
-  rcall inter_part
-  rcall morse_dot
+  ldi ZL, lo8(morse_five)
+  ldi ZH, hi8(morse_five)
+  rcall morse
 
   bad:
 
-  rcall inter_word
+  inc r23
+  rjmp morse_loop
 
-  dec r19
-  brne morse_loop ; branches if r19 != 0
+  return_morse_loop:
+  ret
+
+morse:
+  ; display morse code from index Z
+  lpm r16, Z+
+
+  cpi r16, 0
+  breq morse_return
+
+  out PORTB, r17
+  eor r17, r19 ; xor the first bit of r17 with 1 (i.e. flip it)
+
+  mov r18, r16
+  rcall delay
+
+  rjmp morse
+  morse_return:
   ret
 
 dec_5:
   dec r16
+  breq bad
+  dec r16
+  breq bad
+  dec r16
+  breq bad
+  dec r16
+  breq bad
+  dec r16
   breq good
-  dec r16
-  breq bad
-  dec r16
-  breq bad
-  dec r16
-  breq bad
-  dec r16
-  breq bad
   rjmp dec_5
 
-morse:
-  ; display morse code: MEH, dash dash, dot, dot dot dot dot
-  ldi r16, 0x01 ; only going to turn on the first led
-  ldi r17, 0x00 ; display nothing
-
-  ; dash dash
-  rcall morse_dash
-  rcall inter_part
-  rcall morse_dash
-
-  rcall inter_letter
-
-  ; dot
-  rcall morse_dot
-
-  rcall inter_letter
-
-  ; dot dot dot dot
-  rcall morse_dot
-  rcall inter_part
-  rcall morse_dot
-  rcall inter_part
-  rcall morse_dot
-  rcall inter_part
-  rcall morse_dot
-
-  ret
-
-esrom:
-  ; display morse code: MEH, dash dash, dot, dot dot dot dot
-  ldi r16, 0x01 ; only going to turn on the first led
-  ldi r17, 0x00 ; display nothing
-
-  ; dot dot dot dot
-  rcall morse_dot
-  rcall inter_part
-  rcall morse_dot
-  rcall inter_part
-  rcall morse_dot
-  rcall inter_part
-  rcall morse_dot
-
-  rcall inter_letter
-
-  ; dot
-  rcall morse_dot
-
-  rcall inter_letter
-
-  ; dash dash
-  rcall morse_dash
-  rcall inter_part
-  rcall morse_dash
-
-  ret
-
-morse_dash:
-  ldi r16, 0x01 ; only going to turn on the first led
+ping_pong_going_right:
+  ; displays from 10000000 to 000000010
   out PORTB, r16
-  ldi r18, 60
-  rcall delay
+  out PORTD, r16
+
+  ldi r18, 50
+  rcall delay ; delay for half a second
+
+  lsr r16 ; shift the bits of r16 to the right
+
+  cpi r16, 0x01
+  brne ping_pong_going_right ; branches if the high bit is NOT at the most right position
   ret
 
-morse_dot:
-  ldi r16, 0x01 ; only going to turn on the first led
+ping_pong_going_left:
+  ; displays from 0000001 to 010000000
   out PORTB, r16
-  ldi r18, 20
+  out PORTD, r16
+
+  ldi r18, 50
+  rcall delay ; delay for half a second
+
+  lsl r16 ; shift the bits of r16 to the left
+
+  cpi r16, 0x80
+  brne ping_pong_going_left ; branches if the high bit is NOT at the most left position
+  ret
+
+ping_pong:
+  ; for there not to be duplicates at the ends, each subroutine displays only 7 positions
+  rcall ping_pong_going_right
+  rcall ping_pong_going_left
+  rjmp ping_pong
+
+display_memory_index_z:
+  ; display what is written in memory by using the Z index, delaying one second for each byte
+  lpm r16, Z+
+  cpi r16, 0
+  breq return
+
+  out PORTB, r16
+  out PORTD, r16
+  ldi r18, 100
   rcall delay
+
+  rjmp display_memory_index_z
+  return:
   ret
 
-inter_part:
-  ldi r17, 0x00 ; display nothing
-  out PORTB, r17
-  ldi r18, 20
-  rcall delay
+; code generated using the following tool: http://darcy.rsgc.on.ca/ACES/TEI4M/AVRdelay.html
+delay:
+  ldi r24, 208
+  ldi r25, 201
+L1:
+  dec r25
+  brne L1
+  dec r24
+  brne L1
+  nop
+  dec r18
+  brne L1
   ret
 
-inter_letter:
-  ldi r17, 0x00 ; display nothing
-  out PORTB, r17
-  ldi r18, 60
-  rcall delay
-  ret
-
-inter_word:
-  ldi r17, 0x00 ; display nothing
-  out PORTB, r17
-  ldi r18, 140
-  rcall delay
-  ret
-
-k_number: ; display the k-number: K23162628
-  ldi r16, 0x02
-  rcall display_register
-  ldi r16, 0x03
-  rcall display_register
-  ldi r16, 0x01
-  rcall display_register
-  ldi r16, 0x06
-  rcall display_register
-  ldi r16, 0x02
-  rcall display_register
-  ldi r16, 0x06
-  rcall display_register
-  ldi r16, 0x02
-  rcall display_register
-  ldi r16, 0x08
-
-  ldi r16, 0x00
-  rcall display_register ; display 0 and delay for a second
-  ret
-
-initials: ; display initials: M.K.B
-  ldi r16, 0x0d
-  rcall display_register
-  ldi r16, 0x1b
-  rcall display_register
-  ldi r16, 0x0b
-  rcall display_register
-  ldi r16, 0x1b
-  rcall display_register
-  ldi r16, 0x02
-  rcall display_register
-  ret
-
-display_register: ; display a digit on the leds from r16 and DELAY 1 second
-  out PORTB, r16 ; display the lower 4 bits, since a digit < 10
-  out PORTD, r16 ; display the higher 4 bits
-
-  ldi r18, 100 ; set the delay for a second
-  rcall delay
-  ret
-
-delay: ; delay 10ms * r18
-  rcall delay_10ms ; 1
-  dec r18 ; 1
-  brne delay ; 1 if false, 2 if true
-  ret
-
-delay_10ms:
-  ldi r20, 79 ; 1
-  delay12:
-    ldi r21, 2 ; 1
-    delay22:
-      ldi r22, 252 ; 1
-      delay32:
-        nop ; 1
-        dec r22 ; 1
-        brne delay32 ; 1 if false, 2 if true
-      dec r21 ; 1
-      brne delay22 ; 1 if false, 2 if true
-    dec r20 ; 1
-    brne delay12 ; 1 if false, 2 if true
-  ret
-
-; ((4*79 - 1 + 4) * 2 - 1 + 4) * 252 - 1 cycles = 161531 cycles
+k_number_data: .byte 0x02, 0x03, 0x01, 0x06, 0x02, 0x06, 0x02, 0x08, 0 ; 23162628
+initials_data: .byte 0x0d, 0x1b, 0x0b, 0x1b, 0x02, 0 ; M.K.B
+morse_normal_order: .byte 60, 20, 60, 60, 20, 60, 20, 20, 20, 20, 20, 20, 20, 140, 0 ; MEH with the interim parts
+morse_reverse_order: .byte 20, 20, 20, 20, 20, 20, 20, 60, 20, 60, 60, 20, 60, 140, 0 ; HEM with the interim parts
+morse_five: .byte 20, 20, 20, 20, 20, 20, 20, 20, 20, 140, 0 ; number 5 with interim parts
