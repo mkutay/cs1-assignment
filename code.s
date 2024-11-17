@@ -13,6 +13,8 @@
 
 main:
   ldi NUMBER_ONE, 0x01 ; the constant 0x01
+  ldi DIV_BY_FIVE_COUNTER, 1
+  ldi MORSE_COUNTER, 1
 
   ldi r16, 0
   out SREG, r16 ; clear SREG
@@ -31,8 +33,6 @@ main:
 	ldi	ZH, hi8(initials_data)
   rcall display_memory_index_z ; display initials, that is M.K.B
 
-  ldi DIV_BY_FIVE_COUNTER, 1
-  ldi MORSE_COUNTER, 1
   rcall morse_loop ; call the loop for displaying the morse code
 
   ldi r16, 0x80 ; set the highest bit 1, and the rest 0
