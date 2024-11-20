@@ -6,6 +6,7 @@
 .equ PORTD, 0x0b ; PORTD hosts the higher 4 bits of our byte (our leds)
 .equ DDRD, 0x0a
 .equ DELAY_VAR, 0x12 ; register 18 - the delay variable, used in delaying for a certain amount of time
+.equ DELAY_AMOUNT, 0x14 ; register 20 - the amount of time to delay, loaded from memory
 .equ NUMBER_ONE, 0x13 ; register 19
 .equ MORSE_COUNTER, 0x17 ; register 23
 .equ DIV_BY_FIVE_COUNTER, 0x16 ; register 22
@@ -26,19 +27,24 @@ main:
   ; set Z index to the first address of the k-number data
   ldi	ZL, lo8(k_number_data)
 	ldi	ZH, hi8(k_number_data)
+  lpm DELAY_AMOUNT, Z+ ; load the first byte of the k-number data which is the delay amount
   rcall display_memory_index_z ; display the digits of the k-number, that is 23162628
 
   ; set Z index to the first address of the initials data
   ldi	ZL, lo8(initials_data)
 	ldi	ZH, hi8(initials_data)
+  lpm DELAY_AMOUNT, Z+ ; load the first byte of the initials data which is the delay amount
   rcall display_memory_index_z ; display initials, that is M.K.B
 
   rcall morse_loop ; call the loop for displaying the morse code
 
-  ldi r16, 0x80 ; set the highest bit 1, and the rest 0
-  rjmp ping_pong
-
-  rjmp main
+ping_pong:
+  ; set Z index to the first address of the ping pong data
+  ldi	ZL, lo8(ping_pong_data)
+	ldi	ZH, hi8(ping_pong_data)
+  lpm DELAY_AMOUNT, Z+ ; load the first byte of the data which is the delay amount
+  rcall display_memory_index_z
+  rjmp ping_pong ; repeat the ping pong
 
 morse_loop: ; do it 50 times, that is until MORSE_COUNTER is 51
   ldi FLIP_BIT, 0x01
@@ -55,7 +61,7 @@ morse_loop: ; do it 50 times, that is until MORSE_COUNTER is 51
   ldi ZL, lo8(morse_normal_order)
   ldi ZH, hi8(morse_normal_order)
 
-  not_odd:
+not_odd:
   cpi r21, 0x00 ; essentially checks if MORSE_COUNTER is even
   brne not_even ; branches if r21 is 0x01
 
@@ -63,7 +69,7 @@ morse_loop: ; do it 50 times, that is until MORSE_COUNTER is 51
   ldi ZL, lo8(morse_reverse_order)
   ldi ZH, hi8(morse_reverse_order)
 
-  not_even:
+not_even:
   rcall morse ; display the morse code according to what Z is pointing to
 
   cpi DIV_BY_FIVE_COUNTER, 5 ; checks if the morse counter is divisible by 5
@@ -75,7 +81,7 @@ morse_loop: ; do it 50 times, that is until MORSE_COUNTER is 51
   ldi ZH, hi8(morse_five)
   rcall morse ; display morse code using Z index
 
-  not_div_by_5:
+not_div_by_5:
   inc DIV_BY_FIVE_COUNTER
   inc MORSE_COUNTER
 
@@ -93,57 +99,25 @@ morse: ; display morse code from index Z
   eor FLIP_BIT, NUMBER_ONE ; xor the first bit of FLIP_BIT with 1 (i.e. flip it)
 
   mov DELAY_VAR, r16
-  rcall delay ; delay as read from memory
+  rcall delay ; delay the amount as loaded from memory
 
   rjmp morse
-  morse_return:
+morse_return:
   ret
-
-ping_pong_going_right: ; displays from 10000000 to 00000010
-  out PORTB, r16
-  out PORTD, r16
-
-  ldi DELAY_VAR, 50
-  rcall delay ; delay for half a second
-
-  lsr r16 ; shift the bits of r16 to the right
-
-  cpi r16, 0x01
-  brne ping_pong_going_right ; branches if the high bit is NOT at the most right position
-  ret
-
-ping_pong_going_left: ; displays from 00000001 to 01000000
-  out PORTB, r16
-  out PORTD, r16
-
-  ldi DELAY_VAR, 50
-  rcall delay ; delay for half a second
-
-  lsl r16 ; shift the bits of r16 to the left
-
-  cpi r16, 0x80
-  brne ping_pong_going_left ; branches if the high bit is NOT at the most left position
-  ret
-
-ping_pong:
-  ; for there not to be duplicates at the ends, each subroutine displays only 7 positions
-  rcall ping_pong_going_right
-  rcall ping_pong_going_left
-  rjmp ping_pong
 
 display_memory_index_z:
   ; display what is written in memory by using the Z index, delaying one second for each byte
-  lpm r16, Z+ ; read from memory and increment Z
+  lpm r16, Z+ ; load from program memory and increment Z
   cpi r16, 0
   breq return_display_memory_index_z ; branch and return if we have reached the end of the data
 
   out PORTB, r16 ; display what was read from memory
   out PORTD, r16 ; display what was read from memory
-  ldi DELAY_VAR, 100
+  mov DELAY_VAR, DELAY_AMOUNT
   rcall delay ; delay for a second
 
   rjmp display_memory_index_z
-  return_display_memory_index_z:
+return_display_memory_index_z:
   ret
 
 ; a part of the following code was generated using the following tool: http://darcy.rsgc.on.ca/ACES/TEI4M/AVRdelay.html
@@ -164,8 +138,11 @@ inner_delay:
 ; we can hold our data values in memory, and by adding a zero at the end, we 
 ; can easily find if we have reached the end of our data, noting that
 ; adding a zero at the end is similar to how strings are held in memory in C.
-k_number_data: .byte 0x02, 0x03, 0x01, 0x06, 0x02, 0x06, 0x02, 0x08, 0 ; 23162628
-initials_data: .byte 0x0d, 0x1b, 0x0b, 0x1b, 0x02, 0 ; M.K.B
+k_number_data: .byte 100, 0x02, 0x03, 0x01, 0x06, 0x02, 0x06, 0x02, 0x08, 0 ; first byte holds the delay amount 23162628
+initials_data: .byte 100, 0x0d, 0x1b, 0x0b, 0x1b, 0x02, 0 ; first byte holds the delay amount M.K.B
 morse_normal_order: .byte 60, 20, 60, 60, 20, 60, 20, 20, 20, 20, 20, 20, 20, 140, 0 ; MEH in morse code with the interim parts and the word-end
 morse_reverse_order: .byte 20, 20, 20, 20, 20, 20, 20, 60, 20, 60, 60, 20, 60, 140, 0 ; HEM in morse code with the interim parts and the word-end
 morse_five: .byte 20, 20, 20, 20, 20, 20, 20, 20, 20, 140, 0 ; number 5 in morse code with interim parts and the word-end
+
+; first byte holds the delay amount from 10000000 to 00000010 and from 00000001 to 01000000
+ping_pong_data: .byte 50, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0
