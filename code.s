@@ -5,7 +5,7 @@
 .equ PORTB, 0x05 ; PORTB hosts the lower 4 bits of our byte (our leds)
 .equ PORTD, 0x0b ; PORTD hosts the higher 4 bits of our byte (our leds)
 .equ DDRD, 0x0a
-.equ DELAY_VAR, 0x12 ; register 18
+.equ DELAY_VAR, 0x12 ; register 18 - the delay variable, used in delaying for a certain amount of time
 .equ NUMBER_ONE, 0x13 ; register 19
 .equ MORSE_COUNTER, 0x17 ; register 23
 .equ DIV_BY_FIVE_COUNTER, 0x16 ; register 22
@@ -13,8 +13,8 @@
 
 main:
   ldi NUMBER_ONE, 0x01 ; the constant 0x01
-  ldi DIV_BY_FIVE_COUNTER, 1
-  ldi MORSE_COUNTER, 1
+  ldi DIV_BY_FIVE_COUNTER, 1 ; the counter used for finding the indexes that are divisible by 5
+  ldi MORSE_COUNTER, 1 ; the counter for displaying the morse code, up until 50
 
   ldi r16, 0
   out SREG, r16 ; clear SREG
@@ -99,7 +99,7 @@ morse: ; display morse code from index Z
   morse_return:
   ret
 
-ping_pong_going_right: ; displays from 10000000 to 000000010
+ping_pong_going_right: ; displays from 10000000 to 00000010
   out PORTB, r16
   out PORTD, r16
 
@@ -112,7 +112,7 @@ ping_pong_going_right: ; displays from 10000000 to 000000010
   brne ping_pong_going_right ; branches if the high bit is NOT at the most right position
   ret
 
-ping_pong_going_left: ; displays from 0000001 to 010000000
+ping_pong_going_left: ; displays from 00000001 to 01000000
   out PORTB, r16
   out PORTD, r16
 
@@ -137,8 +137,8 @@ display_memory_index_z:
   cpi r16, 0
   breq return_display_memory_index_z ; branch and return if we have reached the end of the data
 
-  out PORTB, r16
-  out PORTD, r16
+  out PORTB, r16 ; display what was read from memory
+  out PORTD, r16 ; display what was read from memory
   ldi DELAY_VAR, 100
   rcall delay ; delay for a second
 
@@ -147,16 +147,16 @@ display_memory_index_z:
   ret
 
 ; a part of the following code was generated using the following tool: http://darcy.rsgc.on.ca/ACES/TEI4M/AVRdelay.html
-; 2 + 202*3-1 + 207*(3 + 256*3 - 1)-1 + 4 = 160000 cycles are run for DELAY_VAR times
+; 2 + 202*3-1 + 207*(3 + 256*3 - 1)-1 + 1 + 1 + 2 = 160000 cycles are run for each DELAY_VAR
 delay:
   ldi r24, 208
   ldi r25, 202
 inner_delay:
   dec r25 ; 1 instruction
   brne inner_delay ; 2 instructions if branch, 1 otherwise
-  dec r24
-  brne inner_delay
-  nop
+  dec r24 ; 1 instruction
+  brne inner_delay ; 2 instructions if branches, 1 otherwise
+  nop ; do nothing
   dec DELAY_VAR
   brne delay
   ret
@@ -166,6 +166,6 @@ inner_delay:
 ; adding a zero at the end is similar to how strings are held in memory in C.
 k_number_data: .byte 0x02, 0x03, 0x01, 0x06, 0x02, 0x06, 0x02, 0x08, 0 ; 23162628
 initials_data: .byte 0x0d, 0x1b, 0x0b, 0x1b, 0x02, 0 ; M.K.B
-morse_normal_order: .byte 60, 20, 60, 60, 20, 60, 20, 20, 20, 20, 20, 20, 20, 140, 0 ; MEH with the interim parts
-morse_reverse_order: .byte 20, 20, 20, 20, 20, 20, 20, 60, 20, 60, 60, 20, 60, 140, 0 ; HEM with the interim parts
-morse_five: .byte 20, 20, 20, 20, 20, 20, 20, 20, 20, 140, 0 ; number 5 with interim parts
+morse_normal_order: .byte 60, 20, 60, 60, 20, 60, 20, 20, 20, 20, 20, 20, 20, 140, 0 ; MEH in morse code with the interim parts and the word-end
+morse_reverse_order: .byte 20, 20, 20, 20, 20, 20, 20, 60, 20, 60, 60, 20, 60, 140, 0 ; HEM in morse code with the interim parts and the word-end
+morse_five: .byte 20, 20, 20, 20, 20, 20, 20, 20, 20, 140, 0 ; number 5 in morse code with interim parts and the word-end
