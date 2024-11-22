@@ -107,7 +107,7 @@ not_div_by_5:
   out PORTB, r16
   out PORTD, r16
   ldi DELAY_VAR, 140
-  rcall delay ; delay for 1.4 seconds (end of word)
+  rcall delay
 
   cpi MORSE_COUNTER, 51 ; check if we have reached the maximum loop counter, that is 51
   brne morse_loop ; continues with the loop if counter <= 50
