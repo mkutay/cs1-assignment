@@ -102,6 +102,13 @@ not_div_by_5:
   inc DIV_BY_FIVE_COUNTER
   inc MORSE_COUNTER
 
+  ; wait for 1400 ms to indicate the end of the word
+  ldi r16, 0
+  out PORTB, r16
+  out PORTD, r16
+  ldi DELAY_VAR, 140
+  rcall delay ; delay for 1.4 seconds (end of word)
+
   cpi MORSE_COUNTER, 51 ; check if we have reached the maximum loop counter, that is 51
   brne morse_loop ; continues with the loop if counter <= 50
   ret
@@ -164,6 +171,6 @@ initials_data: .byte 0x0d, 0x1b, 0x0b, 0x1b, 0x02, 0 ; hex values of each charac
 
 ; morse data - the value in the first byte will be used as a DELAY to display the led ON,
 ; the second byte will be used as a delay to display the led OFF, and so on by alternating... until we reach the end
-morse_normal_order: .byte 60, 20, 60, 60, 20, 60, 20, 20, 20, 20, 20, 20, 20, 140, 0 ; "MEH" in morse code with the interim parts and the word-end
-morse_reverse_order: .byte 20, 20, 20, 20, 20, 20, 20, 60, 20, 60, 60, 20, 60, 140, 0 ; "HEM" in morse code with the interim parts and the word-end
-morse_five: .byte 20, 20, 20, 20, 20, 20, 20, 20, 20, 140, 0 ; number 5 in morse code with interim parts and the word-end
+morse_normal_order: .byte 60, 20, 60, 60, 20, 60, 20, 20, 20, 20, 20, 20, 20, 0 ; "MEH" in morse code with the interim parts and the word-end
+morse_reverse_order: .byte 20, 20, 20, 20, 20, 20, 20, 60, 20, 60, 60, 20, 60, 0 ; "HEM" in morse code with the interim parts and the word-end
+morse_five: .byte 20, 20, 20, 20, 20, 20, 20, 20, 20, 0 ; number 5 in morse code with interim parts and the word-end
