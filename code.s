@@ -56,8 +56,8 @@ ping_pong_going_right:
   ; Display r16 on the leds.
   out PORTB, r16
   out PORTD, r16
-  ldi DELAY_VAR, 50
-  rcall delay ; Delay for half a second.
+  ldi DELAY_VAR, 25
+  rcall delay ; Delay for quarter of a second.
 
   lsr r16 ; Shift the bit on r16 to the right.
   cpi r16, 0x01
@@ -71,8 +71,8 @@ ping_pong_going_left:
   ; Display the register r16 on the leds.
   out PORTB, r16
   out PORTD, r16
-  ldi DELAY_VAR, 50
-  rcall delay ; delay for half a second
+  ldi DELAY_VAR, 25
+  rcall delay ; delay for quarter of a second
 
   lsl r16 ; Shift the bit on r16 to the left.
   cpi r16, 0x80
