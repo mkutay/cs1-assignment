@@ -1,10 +1,10 @@
-.org 0 ; address from which to start placing instructions
+.org 0 ; Address from which to start placing instructions.
 
 .equ SREG, 0x3f
 .equ DDRB, 0x04
 .equ DDRD, 0x0a
-.equ PORTB, 0x05 ; The lower 4 bits of our byte (leds)
-.equ PORTD, 0x0b ; The higher 4 bits of our byte (leds)
+.equ PORTB, 0x05 ; The lower 4 bits of our byte (leds).
+.equ PORTD, 0x0b ; The higher 4 bits of our byte (leds).
 .equ DELAY_VAR, 0x12 ; register 18 - The delay variable. It is used to delay for a certain amount of time.
 .equ NUMBER_ONE, 0x13 ; register 19 - Holds the constant 0x01 (which is used to flip a bit with XOR).
 .equ MORSE_COUNTER, 0x17 ; register 23 - The counter for displaying the morse code, up until 50.
