@@ -107,7 +107,15 @@ not_even:
   brne not_div_by_5 ; Branches if the morse counter is not divisible by 5.
 
   ldi DIV_BY_FIVE_COUNTER, 0 ; Reset the divisibility by 5 counter to 0, as it will be incremented later to a one.
-  ldi FLIP_BIT, 0x01
+  ldi FLIP_BIT, 0x01 ; Reset the flip bit.
+
+  ; Wait for 600 ms, which indicates the end of the letter, as we still have to display the number 5.
+  ldi r16, 0
+  out PORTB, r16
+  out PORTD, r16
+  ldi DELAY_VAR, 60
+  rcall delay
+
   ldi ZL, morse_five ; Set Z index to the first address of morse code of 5.
   lpm r16, Z+ ; Load data from Program Memory that was pointed by Z, and increment Z afterwards.
   rcall morse ; Display morse code using Z index; here, it will display the morse code for the number 5.
